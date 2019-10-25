@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 import scrapy
 import urllib.parse
+import requests
+
+from novel.items import NovelItem
 
 
 class NovelspiderSpider(scrapy.Spider):
     name = 'novelSpider'
     allowed_domains = ['www.lingdianshuwu.com']
-    start_urls = ['http://www.xbiquge.la/']
+    start_urls = ['https://www.lingdianshuwu.com/','https://www.lingdianshuwu.com/search.asp?searchlist=%s&SearchClass=1']
 
     def start_requests(self):
         # self.input_novelName = input("请输入小说名：")
@@ -42,7 +45,7 @@ class NovelspiderSpider(scrapy.Spider):
             title = sel.xpath('a/text()').extract()
             url = sel.xpath('a/@href').extract()
             if len(title) > 0 and len(url) > 0:
-                novel_list.append((title[0], 'https://www.lingdianshuwu.com/' + url[0].replace('books', 'contents')))
+                novel_list.append((title[0], self.start_urls[0] + url[0].replace('books', 'contents')))
 
         index = self.selectNovel(novel_list)
         return novel_list[index-1]
@@ -53,6 +56,33 @@ class NovelspiderSpider(scrapy.Spider):
         for sel in response.xpath('//table[@class="border"]/tr/td/table/tr/td'):
             title = sel.xpath('a/text()').extract()
             url = sel.xpath('a/@href').extract()
-            catalog.append((title[0], url[0]))
+            catalog.append((title[0],self.start_urls[0] + url[0]))
 
         print(catalog)
+        for cata in catalog:
+            yield scrapy.http.Request(url=cata[1], callback=self.parseContent, dont_filter=True)
+
+        # return scrapy.http.Request(url=catalog[0][1], callback=self.parseContent, dont_filter=True)
+
+
+
+    novel = {}
+
+    def parseContent(self,response):
+        name= response.xpath('// *[ @ id = "content"]/div[1]/b[2]/text()').extract()[0]
+        url = u'https://www.lingdianshuwu.com'+response.xpath('//*[@id="content"]/p/script/@src').extract()[0]
+
+        self.novel[url] = name
+        return scrapy.http.Request(url=url, callback=self.parse_item, dont_filter=True)
+
+
+    def parse_item(self,response):
+        print('----------------------------------111111--------------------------------------------')
+        name = self.novel[response.url]
+        content = response.text.encode(response.encoding).decode('gb18030').replace('<br>','').replace('&nbsp;','\n').\
+            replace('document.write(\'','').replace('</content>\');','').replace('<content>','')
+
+        item = NovelItem()
+        item['name'] = name
+        item['content'] = content
+        yield item

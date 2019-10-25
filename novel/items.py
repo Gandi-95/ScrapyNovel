@@ -10,7 +10,9 @@ import scrapy
 
 class NovelItem(scrapy.Item):
     # define the fields for your item here like:
-    # name = scrapy.Field()
+    num = scrapy.Field()
+    name = scrapy.Field()
+    content = scrapy.Field()
     pass
 
 

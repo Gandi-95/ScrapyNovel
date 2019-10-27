@@ -3,16 +3,18 @@ import scrapy
 import urllib.parse
 import requests
 
+from baseSpider import BaseSpider
 from novel.items import NovelItem
 
 
-class NovelspiderSpider(scrapy.Spider):
+class NovelspiderSpider(BaseSpider):
     name = 'novelSpider'
     allowed_domains = ['www.lingdianshuwu.com']
     start_urls = ['https://www.lingdianshuwu.com/','https://www.lingdianshuwu.com/search.asp?searchlist=%s&SearchClass=1']
 
     def start_requests(self):
-        self.input_novelName = input("请输入小说名：")
+        # self.input_novelName = input("请输入小说名：")
+        self.input_novelName = "圣墟"
         url = self.start_urls[1] % urllib.parse.quote(self.input_novelName.encode('gbk'))
         # url = 'https://www.lingdianshuwu.com/search.asp?searchlist=%CA%A5&SearchClass=1'
         yield scrapy.Request(url=url, callback=self.parse)
@@ -29,7 +31,7 @@ class NovelspiderSpider(scrapy.Spider):
         for index, novel in enumerate(novel_list):
             print(str(index + 1) + '：' + novel[0])
 
-        # return 1;
+        return 1;
         index = input("请选择：")
         try:
             index = int(index)
@@ -58,8 +60,16 @@ class NovelspiderSpider(scrapy.Spider):
             title = sel.xpath('a/text()').extract()
             url = sel.xpath('a/@href').extract()
             catalog.append((title[0],self.start_urls[0] + url[0]))
-        for cata in catalog:
-            yield scrapy.http.Request(url=cata[1], callback=self.parseContent, dont_filter=True)
+
+            item = NovelItem()
+            item['novelName'] = self.input_novelName
+            item['name'] = title[0]
+            item['content'] = url[0]
+            # item['num'] = url[0]
+            yield item
+
+        # for cata in catalog:
+        #     yield scrapy.http.Request(url=cata[1], callback=self.parseContent, dont_filter=True)
 
 
 

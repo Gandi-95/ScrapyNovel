@@ -22,8 +22,9 @@ class NovelPipeline(object):
         pass
 
     def process_item(self, item, spider):
-        chapter = re.findall(r"第(.*)章", item['name'])[0]
-        item['num'] = self.convNum(chapter)
+        if(item['num']==None):
+            chapter = re.findall(r"第(.*)章", item['name'])[0]
+            item['num'] = self.convNum(chapter)
         self.content_list.append(item)
         return item
 
@@ -63,5 +64,5 @@ class NovelPipeline(object):
             # if i in self.num_enum.values():
             #     num.append(i)
 
-        print(num)
+        # print(num)
         return ''.join('%s' %id for id in num)

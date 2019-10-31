@@ -1,10 +1,20 @@
 # -*- coding: utf-8 -*-
 import scrapy
+import sys
+sys.path.append(r'D:\Scrapy Workspace\ScrapyNovel\novel\spiders')
 import urllib.parse
-import requests
-
 from baseSpider import BaseSpider
 from novel.items import NovelItem
+
+import os
+
+#
+# curPath = os.path.abspath(os.path.dirname(__file__))
+# parentPath = os.path.split(curPath)[0]
+# rootPath = os.path.split(parentPath)[0]
+# sys.path.append(rootPath)
+
+
 
 
 class NovelspiderSpider(BaseSpider):
@@ -25,45 +35,37 @@ class NovelspiderSpider(BaseSpider):
         return novel_list
 
 
-
     def parseCatalog(self, response):
-        catalog = []
+        catalogs = []
         for sel in response.xpath('//table[@class="border"]/tr/td/table/tr/td'):
             title = sel.xpath('a/text()').extract()
             url = sel.xpath('a/@href').extract()
-            catalog.append((title[0],self.start_urls[0] + url[0]))
-
-            item = NovelItem()
-            item['novelName'] = self.input_novelName
-            item['name'] = title[0]
-            item['content'] = url[0]
-            # item['num'] = url[0]
-            yield item
-
-        # for cata in catalog:
-        #     yield scrapy.http.Request(url=cata[1], callback=self.parseContent, dont_filter=True)
-
-
-
+            catalogs.append((title[0],self.start_urls[0] + url[0]))
+        return catalogs
 
     novel = {}
+    novelNum = {}
 
-    def parseContent(self,response):
+    def parse_content(self,response):
         name= response.xpath('// *[ @ id = "content"]/div[1]/b[2]/text()').extract()[0]
         url = u'https://www.lingdianshuwu.com'+response.xpath('//*[@id="content"]/p/script/@src').extract()[0]
 
         self.novel[url] = name
+        self.novelNum[name] = response.url
+        print("parse_content"+str(url))
         return scrapy.http.Request(url=url, callback=self.parse_item, dont_filter=True)
 
 
     def parse_item(self,response):
-        print('----------------------------------111111--------------------------------------------')
         name = self.novel[response.url]
         content = response.text.encode(response.encoding).decode('gb18030').replace('<br>','\n').replace('&nbsp;','').\
             replace('document.write(\'','').replace('</content>\');','').replace('<content>','')
 
         item = NovelItem()
-        item['novelName'] = self.input_novelName
+        item['novelName'] = self.novelName
         item['name'] = name
+        item['num'] = self.novelNum[name]
         item['content'] = content
+
+        print(item)
         yield item
